@@ -122,7 +122,7 @@ class COCP():
         
 P_lqr = lqr(A,B,np.eye(N),np.eye(M),W)
 
-LQR = COCP(A,B,W,np.eye(N),np.eye(M),100,20)
+LQR = COCP(A,B,W,np.eye(N),np.eye(M),100,6)
 
 R = np.eye(M)
 Q = np.eye(N)

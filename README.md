@@ -1,4 +1,4 @@
-# EE5121TermPaper
+# EE5121 Term Paper
 This contains the code for the term paper submission for the course EE5121 offered at IIT Madras in the 2020 Spring Semester
 
 To run the code, you need to run the following prereqs using the following command:

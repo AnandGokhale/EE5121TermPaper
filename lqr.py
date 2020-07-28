@@ -6,6 +6,8 @@ from cvxpylayers.torch import CvxpyLayer
 from scipy.linalg import sqrtm
 
 
+
+# Generate system Matrices
 def gensys(N,M,noise = 0.25,seed = 0):
     np.random.seed(seed)
     A = np.random.randn(N,N)
@@ -15,6 +17,8 @@ def gensys(N,M,noise = 0.25,seed = 0):
 
     return A,B,W
 
+
+# Ideal Value
 def lqr(A,B,Q,R,W):
     N,M = B.shape
 
@@ -26,7 +30,7 @@ def lqr(A,B,Q,R,W):
         [A.T@P@B, Q+A.T@P@A-P]
     ]) >> 0, P >> 0]
     result = cp.Problem(cp.Maximize(objective), constraints).solve()
-    print(result)
+
     return P.value
 
 N = 4
@@ -111,21 +115,32 @@ class COCP():
             l = self.loss(P_sqrt, seed=k+1)
             l.backward()
             opt.step()
-            if k == 25:
+            if l<0.01:
                 opt = torch.optim.SGD([P_sqrt], lr=.1)
 
         return losses
         
 P_lqr = lqr(A,B,np.eye(N),np.eye(M),W)
 
-LQR = COCP(A,B,W,np.eye(N),np.eye(M),100,6)
+LQR = COCP(A,B,W,np.eye(N),np.eye(M),100,20)
 
 R = np.eye(M)
 Q = np.eye(N)
 
+import matplotlib
+import matplotlib.pyplot as plt
+
 Kt = np.linalg.solve(R + B.T @ P_lqr @ B, -B.T @ P_lqr @ A)
 loss_lqr = LQR.loss(torch.from_numpy(sqrtm(P_lqr)), seed=0).item()
-print(loss_lqr)
-exit()
+print("Loss LQR : ",loss_lqr)
+
 losses = LQR.optimize()
-print(losses)
+
+plt.semilogy(losses, color='k', label='COCP')
+plt.gca().yaxis.set_minor_formatter(matplotlib.ticker.ScalarFormatter())
+plt.axhline(loss_lqr, linestyle='--', color='k', label='LQR')
+plt.ylabel("cost")
+plt.xlabel("Iterations")
+plt.subplots_adjust(left=.15, bottom=.2)
+plt.savefig("lqr.pdf")
+plt.show()

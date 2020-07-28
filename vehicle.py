@@ -4,7 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from cvxpylayers.torch import CvxpyLayer
 
-
+import matplotlib
+import matplotlib.pyplot as plt
 
 n = 5
 m = 2
@@ -42,7 +43,7 @@ class VehicleControl():
         
         return xnext
 
-    def cost_batch(self,x, u):
+    def cost(self,x, u):
         e, dpsi, v, vdes, K, a, z = x[:, 0], x[:, 1], x[:, 2], x[:, 3], x[:, 4], u[:, 0], u[:, 1]
 
         return (v - vdes).pow(2) + self.params.lam[0] * e.pow(2) + self.params.lam[1] * dpsi.pow(2) + \
@@ -98,7 +99,7 @@ class VehicleControl():
             B[:, 2, 0] = self.params.h
             B[:, 3, 1] = self.params.h * self.params.h * v * v / self.params.L
             u, = self.policy(S, q, fx, B, K.unsqueeze(-1), solver_args={"acceleration_lookback": 0})
-            loss += self.cost_batch(x, u).mean() / time_horizon
+            loss += self.cost(x, u).mean() / time_horizon
             x = self.next_state(x, u)
         
         return loss
@@ -140,12 +141,35 @@ losses_monte_carlo_untrained = [vehicle.loss(100, 1, torch.eye(4), torch.zeros(4
 losses,S,q = vehicle.optimize(100)
 
 
-losses_monte_carlo_trained = [loss(100, 1, S.detach(), q.detach(), seed=1000+k) for k in range(100)]
+plt.semilogy(losses, color='k', label='COCP')
+plt.gca().yaxis.set_minor_formatter(matplotlib.ticker.ScalarFormatter())
+
+plt.ylabel("cost")
+plt.xlabel("Iterations")
+plt.subplots_adjust(left=.15, bottom=.2)
+plt.savefig("lqr.pdf")
+plt.show()
+
+print("S : ", S)
+print("q : ", q)
 
 
-print(losses_monte_carlo_untrained)
 
-print()
-print()
 
-print(losses_monte_carlo_trained)
+losses_monte_carlo_trained = [vehicle.loss(100, 1, S.detach(), q.detach(), seed=1000+k) for k in range(100)]
+
+
+plt.hist(losses_monte_carlo_untrained, bins = np.linspace(0,10,30), alpha=.5, label='untrained', color='tab:blue')
+plt.hist(losses_monte_carlo_trained, bins=30, alpha=.5, label='trained', color='tab:orange')
+plt.axvline(np.mean(losses_monte_carlo_untrained), color='tab:blue')
+plt.axvline(np.mean(losses_monte_carlo_trained), color='tab:orange')
+plt.xscale('log')
+plt.legend()
+plt.xlabel('cost')
+plt.ylabel('count')
+plt.xlim(.3, 20)
+plt.subplots_adjust(bottom=.2)
+#plt.savefig('vehicle_hist.pdf')
+plt.show()
+
+
